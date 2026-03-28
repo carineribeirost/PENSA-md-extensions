@@ -61,10 +61,14 @@ pensa/clusters/
 
 ### Via script (recommended)
 
+#### k-means — two-step workflow
+
+k-means requires choosing `k` before the main run. The recommended workflow is:
+
+**Step 1 — generate the WSS elbow plot (no output written)**
 ```bash
-# k-means (with WSS elbow plot)
 python scripts/calculate_combined_clusters.py \
-    --write --wss \
+    --wss --no-write \
     --ref_file_a traj/condition-a_receptor.gro \
     --trj_file_a traj/condition-a_receptor.xtc \
     --ref_file_b traj/condition-b_receptor.gro \
@@ -76,12 +80,40 @@ python scripts/calculate_combined_clusters.py \
     --out_frames_b clusters/receptor_bu72 \
     --start_frame 2000 \
     --algorithm kmeans \
-    --max_num_clusters 12 \
-    --write_num_clusters 2
+    --max_num_clusters 12
+```
 
-# CLoNe (with PDC sensitivity sweep)
+Inspect `plots/receptor_kmeans_wss_bb-torsions.pdf` and `plots/receptor_kmeans_wss_sc-torsions.pdf`.
+Choose the `k` at the elbow of each curve.
+
+**Step 2 — run clustering with chosen k**
+```bash
 python scripts/calculate_combined_clusters.py \
-    --write --no-wss --pdc-sensitivity \
+    --no-wss --write \
+    --ref_file_a traj/condition-a_receptor.gro \
+    --trj_file_a traj/condition-a_receptor.xtc \
+    --ref_file_b traj/condition-b_receptor.gro \
+    --trj_file_b traj/condition-b_receptor.xtc \
+    --label_a apo --label_b bu72 \
+    --out_plots plots/receptor \
+    --out_results results/receptor \
+    --out_frames_a clusters/receptor_apo \
+    --out_frames_b clusters/receptor_bu72 \
+    --start_frame 2000 \
+    --algorithm kmeans \
+    --write_num_clusters 2   # <-- k chosen from WSS plot
+```
+
+> Both steps can be combined in a single call (`--wss --write --write_num_clusters 2`) if you already know k from prior experience with the system.
+
+#### CLoNe — two-step workflow
+
+CLoNe selects k automatically, but requires choosing the `pdc` (percentile density cutoff). Same two-step pattern:
+
+**Step 1 — PDC sensitivity sweep**
+```bash
+python scripts/calculate_combined_clusters.py \
+    --no-write --pdc-sensitivity \
     --ref_file_a traj/condition-a_receptor.gro \
     --trj_file_a traj/condition-a_receptor.xtc \
     --ref_file_b traj/condition-b_receptor.gro \
@@ -93,11 +125,38 @@ python scripts/calculate_combined_clusters.py \
     --out_frames_b clusters/receptor_bu72 \
     --start_frame 2000 \
     --algorithm clone \
-    --pdc 4.0 \
+    --n_resize 4 \
+    --filt 0.1
+```
+
+Inspect `plots/receptor_clone_pdc_sensitivity_bb-torsions.pdf`. Choose the lowest `pdc` value where the number of clusters is stable.
+
+**Step 2 — run clustering with chosen pdc**
+```bash
+python scripts/calculate_combined_clusters.py \
+    --no-pdc-sensitivity --write \
+    --ref_file_a traj/condition-a_receptor.gro \
+    --trj_file_a traj/condition-a_receptor.xtc \
+    --ref_file_b traj/condition-b_receptor.gro \
+    --trj_file_b traj/condition-b_receptor.xtc \
+    --label_a apo --label_b bu72 \
+    --out_plots plots/receptor \
+    --out_results results/receptor \
+    --out_frames_a clusters/receptor_apo \
+    --out_frames_b clusters/receptor_bu72 \
+    --start_frame 2000 \
+    --algorithm clone \
+    --pdc 4.0 \   # <-- pdc chosen from sensitivity plot
     --n_resize 4 \
     --filt 0.1
 
-# TICC (bb-torsions, validated parameters for MOR)
+#### TICC
+
+TICC requires specifying `k` manually. Use `--ticc-bic` to run a BIC sweep over a range of k values and inspect the plot, or rely on prior knowledge of the system.
+
+For bb-torsions with the MOR tutorial dataset, the following parameters are validated (see [TICC parameter notes](#ticc-parameter-notes) below):
+
+```bash
 python scripts/calculate_combined_clusters.py \
     --write --no-wss \
     --ref_file_a traj/condition-a_receptor.gro \
