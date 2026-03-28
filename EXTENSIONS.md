@@ -226,7 +226,7 @@ TICC is sensitive to its parameters. Key considerations:
 - **`pca_variance_threshold`**: PCA is applied automatically when `n_features > 50`. For bb-torsions (574 features), `0.80` gives ~43 components (workable). `0.90` gives ~97 components and may produce singular covariance matrices.
 - **`beta`**: switch penalty between clusters. Values above ~100 tend to collapse all frames into one cluster.
 - **`window_size`**: TICC drops the last `window_size - 1` frames from labeling — this is handled automatically.
-- **sc-torsions**: not recommended for TICC with the standard MOR dataset — 80% PCA variance requires ~231 components, making the stacked covariance matrix impractical.
+- **sc-torsions**: with the standard MOR dataset, 80% PCA variance requires ~231 components → stacked feature dimension of 1155 (231 × window_size=5). This makes covariance estimation expensive. Whether this is feasible depends on available memory and compute.
 
 Validated parameters for MOR bb-torsions: `window_size=5, lambda=0.05, beta=50, pca_variance_threshold=0.80`
 
